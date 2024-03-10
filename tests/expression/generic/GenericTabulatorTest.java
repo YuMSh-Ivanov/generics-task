@@ -5,6 +5,9 @@ import base.function.TriFunction;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
+import org.junit.runner.notification.Failure;
 import org.junit.runners.MethodSorters;
 
 import java.math.BigInteger;
@@ -17,6 +20,16 @@ import java.util.stream.IntStream;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class GenericTabulatorTest {
+    public static void main(String[] args) {
+        final Result res = new JUnitCore().run(GenericTabulatorTest.class);
+        for (final Failure fail : res.getFailures()) {
+            System.err.println(fail.getTestHeader() + ": " + fail.getMessage());
+        }
+        if (!res.wasSuccessful()) {
+            System.exit(1);
+        }
+    }
+
     private static final EvalMode<Integer> INTEGER = EvalMode
             .builder(x -> x)
             .add("-", x -> -x)
