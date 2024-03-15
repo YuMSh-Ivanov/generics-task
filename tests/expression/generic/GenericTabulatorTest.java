@@ -39,6 +39,24 @@ public class GenericTabulatorTest {
             .add("/", (x, y) -> x / y)
             .build();
 
+    // Deliberately ugly and slow code
+    private static long check(final BigInteger bi) {
+        if (bi.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) >= 0 && bi.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0) {
+            return bi.longValue();
+        } else {
+            throw new RuntimeException("long out of bounds");
+        }
+    }
+
+    private static final EvalMode<Long> LONG_CHECKED = EvalMode
+            .builder(x -> (long) x)
+            .add("-", x -> check(BigInteger.valueOf(x).negate()))
+            .add("+", (x, y) -> check(BigInteger.valueOf(x).add(BigInteger.valueOf(y))))
+            .add("-", (x, y) -> check(BigInteger.valueOf(x).subtract(BigInteger.valueOf(y))))
+            .add("*", (x, y) -> check(BigInteger.valueOf(x).multiply(BigInteger.valueOf(y))))
+            .add("/", (x, y) -> check(BigInteger.valueOf(x).divide(BigInteger.valueOf(y))))
+            .build();
+
     private static final EvalMode<BigInteger> BIG_INTEGER = EvalMode
             .builder(BigInteger::valueOf)
             .add("-", BigInteger::negate)
@@ -48,7 +66,20 @@ public class GenericTabulatorTest {
             .add("/", BigInteger::divide)
             .build();
 
-    private static final Map<String, EvalMode<?>> MODES = Map.of("i", INTEGER, "bi", BIG_INTEGER);
+    private static int trunc(final int i) {
+        return i / 10 * 10;
+    }
+
+    private static final EvalMode<Integer> INTEGER_TRUNCATE = EvalMode
+            .builder(GenericTabulatorTest::trunc)
+            .add("-", x -> trunc(-x))
+            .add("+", (x, y) -> trunc(x + y))
+            .add("-", (x, y) -> trunc(x - y))
+            .add("*", (x, y) -> trunc(x * y))
+            .add("/", (x, y) -> trunc(x / y))
+            .build();
+
+    private static final Map<String, EvalMode<?>> MODES = Map.of("i", INTEGER, "bi", BIG_INTEGER, "lC", LONG_CHECKED, "iT", INTEGER_TRUNCATE);
 
     private static String fullBraced(final ExprNode expression) {
         return expression.getRecursive(
@@ -162,7 +193,7 @@ public class GenericTabulatorTest {
         final RangeInclusive bottomRange = new RangeInclusive(Integer.MIN_VALUE, Integer.MIN_VALUE + 10);
         final RangeInclusive topRange = new RangeInclusive(Integer.MAX_VALUE - 10, Integer.MAX_VALUE);
 
-        for (final String modeName : new String[]{"i", "bi"}) {
+        for (final String modeName : MODES.keySet()) {
             testValid(expression, modeName, middleRange, middleRange, middleRange);
             testValid(expression, modeName, bottomRange, bottomRange, bottomRange);
             testValid(expression, modeName, topRange, topRange, topRange);
@@ -278,6 +309,8 @@ public class GenericTabulatorTest {
             final RangeInclusive zRange = randomRange();
             testValid(expr, "i", xRange, yRange, zRange);
             testValid(expr, "bi", xRange, yRange, zRange);
+            testValid(expr, "lC", xRange, yRange, zRange);
+            testValid(expr, "iT", xRange, yRange, zRange);
         }
 
         for (int i = 0; i < 40; i++) {
@@ -287,6 +320,8 @@ public class GenericTabulatorTest {
             final RangeInclusive zRange = randomRange();
             testValid(expr, "i", xRange, yRange, zRange);
             testValid(expr, "bi", xRange, yRange, zRange);
+            testValid(expr, "lC", xRange, yRange, zRange);
+            testValid(expr, "iT", xRange, yRange, zRange);
         }
 
         for (int i = 0; i < 10; i++) {
@@ -296,6 +331,8 @@ public class GenericTabulatorTest {
             final RangeInclusive zRange = randomRange();
             testValid(expr, "i", xRange, yRange, zRange);
             testValid(expr, "bi", xRange, yRange, zRange);
+            testValid(expr, "lC", xRange, yRange, zRange);
+            testValid(expr, "iT", xRange, yRange, zRange);
         }
 
         for (int i = 0; i < 20; i++) {
@@ -305,6 +342,8 @@ public class GenericTabulatorTest {
             final RangeInclusive zRange = randomRange();
             testValid(expr, "i", xRange, yRange, zRange);
             testValid(expr, "bi", xRange, yRange, zRange);
+            testValid(expr, "lC", xRange, yRange, zRange);
+            testValid(expr, "iT", xRange, yRange, zRange);
         }
     }
 }
