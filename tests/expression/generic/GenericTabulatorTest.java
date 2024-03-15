@@ -33,6 +33,7 @@ public class GenericTabulatorTest {
     private static final EvalMode<Integer> INTEGER = EvalMode
             .builder(x -> x)
             .add("-", x -> -x)
+            .add("count", Integer::bitCount)
             .add("+", Integer::sum)
             .add("-", (x, y) -> x - y)
             .add("*", (x, y) -> x * y)
@@ -51,6 +52,7 @@ public class GenericTabulatorTest {
     private static final EvalMode<Long> LONG_CHECKED = EvalMode
             .builder(x -> (long) x)
             .add("-", x -> check(BigInteger.valueOf(x).negate()))
+            .add("count", x -> (long) Long.bitCount(x))
             .add("+", (x, y) -> check(BigInteger.valueOf(x).add(BigInteger.valueOf(y))))
             .add("-", (x, y) -> check(BigInteger.valueOf(x).subtract(BigInteger.valueOf(y))))
             .add("*", (x, y) -> check(BigInteger.valueOf(x).multiply(BigInteger.valueOf(y))))
@@ -60,6 +62,7 @@ public class GenericTabulatorTest {
     private static final EvalMode<BigInteger> BIG_INTEGER = EvalMode
             .builder(BigInteger::valueOf)
             .add("-", BigInteger::negate)
+            .add("count", x -> BigInteger.valueOf(x.bitCount()))
             .add("+", BigInteger::add)
             .add("-", BigInteger::subtract)
             .add("*", BigInteger::multiply)
@@ -73,6 +76,7 @@ public class GenericTabulatorTest {
     private static final EvalMode<Integer> INTEGER_TRUNCATE = EvalMode
             .builder(GenericTabulatorTest::trunc)
             .add("-", x -> trunc(-x))
+            .add("count", x -> trunc(Integer.bitCount(x)))
             .add("+", (x, y) -> trunc(x + y))
             .add("-", (x, y) -> trunc(x - y))
             .add("*", (x, y) -> trunc(x * y))
@@ -86,8 +90,8 @@ public class GenericTabulatorTest {
                 c -> new StringBuilder(c.toString()),
                 StringBuilder::new,
                 (s, sb) -> new StringBuilder(1 + s.length() + sb.length() + 1)
-                        .append("(")
                         .append(s)
+                        .append("(")
                         .append(sb)
                         .append(")"),
                 (s, sb1, sb2) -> new StringBuilder(1 + sb1.length() + s.length() + sb2.length() + 1)
@@ -262,6 +266,33 @@ public class GenericTabulatorTest {
         );
     }
 
+    @Test
+    public void test4SimpleCountOperation() {
+        testFixedRangesFixedModes(
+                ExprNode.unary("count",
+                        ExprNode.variable("y")
+                )
+        );
+
+        testFixedRangesFixedModes(
+                ExprNode.unary("count",
+                    ExprNode.binary("*",
+                            ExprNode.constant(Integer.MAX_VALUE - 3),
+                            ExprNode.variable("x")
+                    )
+                )
+        );
+
+        testFixedRangesFixedModes(
+                ExprNode.unary("count",
+                        ExprNode.binary("/",
+                                ExprNode.variable("z"),
+                                ExprNode.variable("x")
+                        )
+                )
+        );
+    }
+
     private final Random rng = new Random(8082475903752582983L);
 
     private ExprNode generateExpressionRec(final int depth, final Function<Integer, Double> stopProb) {
@@ -276,7 +307,7 @@ public class GenericTabulatorTest {
                 });
             }
         } else {
-            return switch (rng.nextInt(5)) {
+            return switch (rng.nextInt(6)) {
                 case 0 ->
                         ExprNode.binary("+", generateExpressionRec(depth + 1, stopProb), generateExpressionRec(depth + 1, stopProb));
                 case 1 ->
@@ -285,7 +316,8 @@ public class GenericTabulatorTest {
                         ExprNode.binary("*", generateExpressionRec(depth + 1, stopProb), generateExpressionRec(depth + 1, stopProb));
                 case 3 ->
                         ExprNode.binary("/", generateExpressionRec(depth + 1, stopProb), generateExpressionRec(depth + 1, stopProb));
-                default -> ExprNode.unary("-", generateExpressionRec(depth + 1, stopProb));
+                case 4 -> ExprNode.unary("-", generateExpressionRec(depth + 1, stopProb));
+                default -> ExprNode.unary("count", generateExpressionRec(depth + 1, stopProb));
             };
         }
     }
